@@ -1,4 +1,11 @@
 <?php
+/**
+ * ReversedPolishNotation class - supports converting and evaluating RPN(postfix) expressions
+ * @author masiakla
+ *
+ * @todo: float support in conversion without variables
+ * @todo: negative numbers support in infix expression
+ */
 class ReversedPolishNotation {
   protected $expression = null;
   protected $variables = array();
@@ -12,7 +19,7 @@ class ReversedPolishNotation {
   }
 
   /**
-   * Convert infix expression to RPN(postfix)
+   * Convert infix expression to RPN(postfix) - Edsger Dijkstra's algorithm
    *
    * @param string $expression
    *
@@ -87,11 +94,11 @@ class ReversedPolishNotation {
   }
 
   public function setVariable($key, $value) {
-    //
+    $this->variables[$key] = $value;
   }
 
   public function setVariables(array $variables) {
-    //
+    $this->variables = array_merge($this->variables, $variables);
   }
 
   public function removeVariable($key) {
@@ -102,8 +109,31 @@ class ReversedPolishNotation {
     //
   }
 
-  public function evaluate() {
-    //
+  public function evaluate($variables = array()) {
+    if (is_null($this->expression)) {
+      return false;
+    }
+    if (!empty($variables)) {
+      $this->setVariables($variables);
+    }
+    $expression = trim($this->getExpression());
+    if (!empty($this->variables)) { //if we have any variables we try to replace them with values
+      $expression = strtr($expression, $this->variables);
+    }
+
+    $stack = array();
+    $elements = explode(' ', $expression);
+
+    foreach ($elements as $element) {
+      if (is_numeric($element)) {
+        array_push($stack, $element);
+      } elseif ($this->isOperator($element)) {
+        $b = array_pop($stack);
+        $a = array_pop($stack);
+        array_push($stack, $this->operation($a, $b, $element));
+      }
+    }
+    return array_pop($stack);
   }
 
   /**
@@ -183,6 +213,25 @@ class ReversedPolishNotation {
       }
     }
     return $parenthesis_level == 0;
+  }
+
+  protected function operation($a, $b, $operator) {
+    switch ($operator) {
+      case '+':
+        return $a + $b;
+      case '-':
+        return $a - $b;
+      case '*':
+        return $a * $b;
+      case '/':
+        return $a / $b;
+      case '%':
+        return $a % $b;
+      case '^':
+        return pow($a, $b);
+      default:
+        throw new DomainException('Operation is not supported!');
+    }
   }
 
   public function __toString() {
